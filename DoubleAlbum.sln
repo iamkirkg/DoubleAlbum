@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8039497B-DC3C-4E92-9CFF-9CDD30C3367F}"
+	ProjectSection(SolutionItems) = preProject
+		DoubleAlbum.ps1 = DoubleAlbum.ps1
+		DoubleAlbum_CDn.ps1 = DoubleAlbum_CDn.ps1
+		TestMetadata.ps1 = TestMetadata.ps1
+		Music.ps1 = Music.ps1
+		MusicFix.ps1 = MusicFix.ps1
+		MusicFixed.ps1 = MusicFixed.ps1
+		RegexTitle.ps1 = RegexTitle.ps1
+		RenameAlbum.ps1 = RenameAlbum.ps1
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C53B60FE-0483-47F4-99EA-F2ADC48D6330}
+	EndGlobalSection
+EndGlobal
