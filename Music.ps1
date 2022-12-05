@@ -296,7 +296,7 @@ function GetMetadata {
 			if ($iDx -ne $i) { throw "iDx out of sequence: " + $line} 
 
 			$metadata[$szName] = @{"iDx"=$iDx; "type"=$szType; "value"=$szValue}
-			#if ($fVerbose) { Write-Host $metadata[$szName].iDx $szName $metadata[$szName].type $metadata[$szName].value }
+			if ($fVerbose) { Write-Host $metadata[$szName].iDx $szName $metadata[$szName].type $metadata[$szName].value }
 
 			$i++
 		}
@@ -440,7 +440,7 @@ function UpdateMusicFile
 	# This is such horseshit!  
 	# The following two blocks are for WM/Track and WM/TrackNumber. 
 	# They are very similar. They should be totally diff-able.
-	# The differences bewteen them are few, but necessary. To wit:
+	# The differences between them are few, but necessary. To wit:
 	#   1. In mp3, updating WM/Track auto-updates WM/TrackNumber.
 	#   2. In wma, WM/Track is 0-based. All else is 1-based.
 
@@ -450,76 +450,77 @@ function UpdateMusicFile
 	# Reload the metadata
 	$meta = GetMetadata $fileMusic $fVerbose
 	$metaTrack = $meta['WM/Track']
-	$iDxTrack = $metaTrack.iDx
 
-	if ($metaTrack.value -eq -1) {
-		throw "UpdateMusicFile: can't find WM/Track in " + $fileMusic
-	}
+	if ($metaTrack -ne $null) {
 
-	switch ($ext) {
-		'mp3' {
-			if ($metaTrack.type -ne "STRING") {
-				throw "MP3 has non-String WM/Track: " + $fileMusic
+		switch ($ext) {
+			'mp3' {
+				if ($metaTrack.type -ne "STRING") {
+					throw "MP3 has non-String WM/Track: " + $fileMusic
+				}
+				$iType = $WMT_TYPE_STRING
+
+				# Is it one number ('5') or two ('5/10')?
+				if ($metaTrack.value -match '(?<numOne>\d+)\/(?<numTwo>\d+)') {
+					if ($fVerbose) { Write-Host "WM/Track value contains a slash:[" $metaTrack.value "]=[" $Matches.numOne "-slash-" $Matches.numTwo "]" }
+					$iTrack = $Matches.numOne
+					$iTrackNew = [int]$Matches.numOne + $myDelta
+					$szTrackNew = "$iTrackNew/$cTrackTotal"
+				} elseif ($metaTrack.value -match '(?<numOnly>\d+)') {
+					if ($fVerbose) { Write-Host "WM/Track value has no slash:[" $metaTrack.value "]=[" $Matches.numOnly "]" }
+					$iTrack = $Matches.numOnly
+					$iTrackNew = [int]$Matches.numOnly + $myDelta
+					$szTrackNew = "$iTrackNew"
+				} else {
+					throw "MP3 has bogus value for WM/Track: " + $fileMusic + ": " + $metaTrack.value
+				}
+				$iTrackExpected = $iTrack
 			}
-			$iType = $WMT_TYPE_STRING
 
-			# Is it one number ('5') or two ('5/10')?
-			if ($metaTrack.value -match '(?<numOne>\d+)\/(?<numTwo>\d+)') {
-				if ($fVerbose) { Write-Host "WM/Track value contains a slash:[" $metaTrack.value "]=[" $Matches.numOne "-slash-" $Matches.numTwo "]" }
-				$iTrack = $Matches.numOne
-				$iTrackNew = [int]$Matches.numOne + $myDelta
-				$szTrackNew = "$iTrackNew/$cTrackTotal"
-			} elseif ($metaTrack.value -match '(?<numOnly>\d+)') {
-				if ($fVerbose) { Write-Host "WM/Track value has no slash:[" $metaTrack.value "]=[" $Matches.numOnly "]" }
-				$iTrack = $Matches.numOnly
-				$iTrackNew = [int]$Matches.numOnly + $myDelta
-				$szTrackNew = "$iTrackNew"
-			} else {
-				throw "MP3 has bogus value for WM/Track: " + $fileMusic + ": " + $metaTrack.value
-			}
-			$iTrackExpected = $iTrack
-		}
-
-		'wma' {
-			switch ($metaTrack.type) {
-				'DWORD' {
-					# 2, 0x00000002
-					if ($fVerbose) { Write-Host "WM/Track has" $metaTrack.type "type:" $metaTrack.value }
-					if ($metaTrack.value -match '(?<numOne>\d+), 0x\d+') {
-						$iTrack = [int]$Matches.numOne
-						$iTrackNew = $iTrack + $myDelta
-						$iType = $WMT_TYPE_DWORD
-					} else {
-						throw "WMA has bogus format for DWORD value:" + $metaTrack.value
+			'wma' {
+				switch ($metaTrack.type) {
+					'DWORD' {
+						# 2, 0x00000002
+						if ($fVerbose) { Write-Host "WM/Track has" $metaTrack.type "type:" $metaTrack.value }
+						if ($metaTrack.value -match '(?<numOne>\d+), 0x\d+') {
+							$iTrack = [int]$Matches.numOne
+							$iTrackNew = $iTrack + $myDelta
+							$iType = $WMT_TYPE_DWORD
+						} else {
+							throw "WMA has bogus format for DWORD value:" + $metaTrack.value
+						}
+					}
+					'STRING' {
+						if ($fVerbose) { Write-Host "WM/Track has" $metaTrack.type "type:" $metaTrack.value }
+						$iTrack = $metaTrack.value
+						$iTrackNew = [int]$metaTrack.value + $myDelta
+						$iType = $WMT_TYPE_STRING
+						$iTrackExpected = $iTrack
+					}
+					default {
+						throw ("WMA has bogus WM/Track type: " + $metaTrack.type)
 					}
 				}
-				'STRING' {
-					if ($fVerbose) { Write-Host "WM/Track has" $metaTrack.type "type:" $metaTrack.value }
-					$iTrack = $metaTrack.value
-					$iTrackNew = [int]$metaTrack.value + $myDelta
-					$iType = $WMT_TYPE_STRING
-					$iTrackExpected = $iTrack
-				}
-				default {
-					throw ("WMA has bogus WM/Track type: " + $metaTrack.type)
-				}
+				# This is the goofy case: the WM/Track metadata (STRING or DWORD) is 0-based.
+				$iTrackExpected = $iTrack + 1
+				$szTrackNew = "$iTrackNew"
 			}
-			# This is the goofy case: the WM/Track metadata (STRING or DWORD) is 0-based.
-			$iTrackExpected = $iTrack + 1
-			$szTrackNew = "$iTrackNew"
+
+			default { 
+				if ($fVerbose) { Write-Host "Ignoring file " + $fileMusic }
+			} 
 		}
 
-		default { 
-			if ($fVerbose) { Write-Host "Ignoring file " + $fileMusic }
-		} 
-	}
+		# When we rename '03 foo.wma' to '14 foo.wma', this is '14'.
+		$szTrackPrefixNew = "$iTrackNew"
 
-	if ($fVerbose) { Write-Host "myDelta = $myDelta, iTrackNew = [$iTrackNew], szTrackNew = [$szTrackNew]" }
+		if ($fVerbose) { Write-Host "myDelta = $myDelta, iTrackNew = [$iTrackNew], szTrackNew = [$szTrackNew]" }
 
-	if ($myDelta -gt 0)	{
-		# MetaDataEdit <filename> modify <stream number> <attrib index> <attrib type> <attrib value> <attrib language>
-		if ($fVerbose) { Write-Host "MetadataEdit.exe $fileMusic modify 0 $iDxTrack $iType $szTrackNew 0" }
-		if (!$fReadonly) {          &MetadataEdit.exe $fileMusic modify 0 $iDxTrack $iType $szTrackNew 0 | Out-Null }
+		if ($myDelta -gt 0)	{
+			# MetaDataEdit <filename> modify <stream number> <attrib index> <attrib type> <attrib value> <attrib language>
+			if ($fVerbose) { Write-Host "MetadataEdit.exe $fileMusic modify 0 $metaTrack.iDx $iType $szTrackNew 0" }
+			if (!$fReadonly) {          &MetadataEdit.exe $fileMusic modify 0 $metaTrack.iDx $iType $szTrackNew 0 | Out-Null }
+		}
 	}
 
 	# --------------------------------------------
@@ -528,58 +529,60 @@ function UpdateMusicFile
 	# Reload the metadata
 	$meta = GetMetadata $fileMusic $fVerbose
 	$metaTrack = $meta['WM/TrackNumber']
-	$iDxTrack = $metaTrack.iDx
 
-	if ($metaTrack.value -eq -1) {
-		throw "UpdateMusicFile: can't find WM/TrackNumber in " + $fileMusic
-	}
+	if ($metaTrack -ne $null) {
 
-	switch ($ext) {
-		'mp3' {
-			# There is nothing to do. When WM/Track is updated in an mp3, WM/TrackNumber gets done too.
-		}
+		switch ($ext) {
+			'mp3' {
+				# There is nothing to do. When WM/Track is updated in an mp3, WM/TrackNumber gets done too.
+			}
 
-		'wma' {
-			switch ($metaTrack.type) {
-				'DWORD' {
-					# 2, 0x00000002
-					if ($fVerbose) { Write-Host "WM/TrackNumber has" $metaTrack.type "type:" $metaTrack.value }
-					if ($metaTrack.value -match '(?<numOne>\d+), 0x\d+') {
-						$iTrack = [int]$Matches.numOne
+			'wma' {
+				switch ($metaTrack.type) {
+					'DWORD' {
+						# 2, 0x00000002
+						if ($fVerbose) { Write-Host "WM/TrackNumber has" $metaTrack.type "type:" $metaTrack.value }
+						if ($metaTrack.value -match '(?<numOne>\d+), 0x\d+') {
+							$iTrack = [int]$Matches.numOne
+							$iTrackNew = $iTrack + $myDelta
+							$iType = $WMT_TYPE_DWORD
+						} else {
+							throw "WMA has bogus format for DWORD value:" + $metaTrack.value
+						}
+					}
+					'STRING' {
+						if ($fVerbose) { Write-Host "WM/TrackNumber1 has" $metaTrack.type "type:" $metaTrack.value }
+						# We have to convert the string "3" to the integer 3. The string actually has the doublequotes.
+						$iTrack = [int]$metaTrack.value.Replace('"','')
 						$iTrackNew = $iTrack + $myDelta
-						$iType = $WMT_TYPE_DWORD
-					} else {
-						throw "WMA has bogus format for DWORD value:" + $metaTrack.value
+						$iType = $WMT_TYPE_STRING
+					}
+					default {
+						throw ("WMA has bogus WM/TrackNumber type: " + $metaTrack.type)
 					}
 				}
-				'STRING' {
-					if ($fVerbose) { Write-Host "WM/TrackNumber has" $metaTrack.type "type:" $metaTrack.value }
-					$iTrack = $metaTrack.value
-					$iTrackNew = [int]$metaTrack.value + $myDelta
-					$iType = $WMT_TYPE_STRING
-				}
-				default {
-					throw ("WMA has bogus WM/TrackNumber type: " + $metaTrack.type)
-				}
+				$iTrackExpected = $iTrack
+				$szTrackNew = "$iTrackNew"
 			}
-			$iTrackExpected = $iTrack
-			$szTrackNew = "$iTrackNew"
+
+			default { 
+				if ($fVerbose) { Write-Host "Ignoring file " + $fileMusic }
+			}
 		}
 
-		default { 
-			if ($fVerbose) { Write-Host "Ignoring file " + $fileMusic }
-		} 
-	}
+		# When we rename '03 foo.wma' to '14 foo.wma', this is '14'.
+		$szTrackPrefixNew = "$iTrackNew"
 
-	# My hack to skip mp3, but keep formatting diff-able vs the WM/Track block, above.
-	if ($ext -eq 'wma') {
-	if ($fVerbose) { Write-Host "myDelta = $myDelta, iTrackNew = [$iTrackNew], szTrackNew = [$szTrackNew]" }
+		# My hack to skip mp3, but keep formatting diff-able vs the WM/Track block, above.
+		if ($ext -eq 'wma') {
+			if ($fVerbose) { Write-Host "myDelta = $myDelta, iTrackNew = [$iTrackNew], szTrackNew = [$szTrackNew]" }
 
-	if ($myDelta -gt 0)	{
-		# MetaDataEdit <filename> modify <stream number> <attrib index> <attrib type> <attrib value> <attrib language>
-		if ($fVerbose) { Write-Host "MetadataEdit.exe $fileMusic modify 0 $iDxTrack $iType $szTrackNew 0" }
-		if (!$fReadonly) {          &MetadataEdit.exe $fileMusic modify 0 $iDxTrack $iType $szTrackNew 0 | Out-Null }
-	}
+			if ($myDelta -gt 0)	{
+				# MetaDataEdit <filename> modify <stream number> <attrib index> <attrib type> <attrib value> <attrib language>
+				if ($fVerbose) { Write-Host "MetadataEdit.exe $fileMusic modify 0 $metaTrack.iDx $iType $szTrackNew 0" }
+				if (!$fReadonly) {          &MetadataEdit.exe $fileMusic modify 0 $metaTrack.iDx $iType $szTrackNew 0 | Out-Null }
+			}
+		}
 	}
 
 	# --------------------------------------------
@@ -587,36 +590,31 @@ function UpdateMusicFile
 	
 	# REVIEW: regexp fails in this case; we match on \200 instead of \01.
 	#  01 \\kona\glerum\musicatos\Frank Zappa\200 Motels Disc 1\01 Semi-Fraudulent-Direct-From-Hollywood Overture.wma
-	if ($fileMusic -match ".*\\(\d+) ") # backslash, digits, then a space
-		{
+	# backslash, digits, then a space
+	if ($fileMusic -match ".*\\(\d+) ") {
 		[int]$iTrackPrefix = $matches[1]
 		$szTrackPrefix = $matches[1]
-		if ($fVerbose) { Write-Host "iTrackPrefix = $iTrackPrefix, szTrackPrefix = $szTrackPrefix" }
+		if ($fVerbose) { Write-Host "iTrackPrefix = $iTrackPrefix, szTrackPrefix = $szTrackPrefix, szTrackPrefixNew = $szTrackPrefixNew" }
 
 		# Confirm the filename matches what we found in the metadata
-		if ($iTrackPrefix -eq $iTrackExpected)
-			{
-			if ($myDelta -gt 0)
-				{
-				$fullNew = "$fileMusic" -replace "\\$szTrackPrefix ", "\$szTrackNew "
+		if ($iTrackPrefix -eq $iTrackExpected) {
+			if ($myDelta -gt 0) {
+				$fullNew = "$fileMusic" -replace "\\$szTrackPrefix ", "\$szTrackPrefixNew "
 				if ($fVerbose) { Write-Host "Move-Item -LiteralPath $fileMusic -Destination $fullNew" }
 				if (!$fReadonly) { Move-Item -LiteralPath $fileMusic -Destination $fullNew }
-				}
 			}
-		else
-			{
+		} else {
 			Write-Host "ERROR file prefix [$iTrackPrefix] doesn't match metadata [$iTrack] in $fileMusic"
 			return -1
-			}
 		}
-	else
-		{
+	}
+	else {
 		Write-Host "ERROR doesn't start with two digits: $fileMusic"
 		return -1
-		}
+	}
 
 	return $iTrack
-	}
+}
 
 # ---------------------------------------------------------------------------
 #
