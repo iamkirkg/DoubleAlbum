@@ -74,10 +74,22 @@ foreach ($arg in $args)
 		}
 	}
 
+# How many (properly numbered) music files are there in all these directories?
+$cTrackTotal = 0
+foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*CD*' | Where-Object { $_.Attributes -match ".*Directory.*" } | Sort-Object $_.Fullname ) {
+	if ($fVerbose) { Write-Host "Search dir = $dirDisc" }
+	foreach ($fileMusic in Get-ChildItem -LiteralPath $dirDisc) {
+		if ($fileMusic -match '^\d\d .*\.(mp3|wma)$') {
+			$cTrackTotal++
+		}
+	}
+}
+if ($fVerbose) { Write-Host "Count of files = $cTrackTotal" }
+
 # Process all the directories named 'Whatever CDn'
-foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*CD?' | Where-Object { $_.Attributes -match ".*Directory.*" } | Sort-Object $_.Fullname )
+foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*CD*' | Where-Object { $_.Attributes -match ".*Directory.*" } | Sort-Object $_.Fullname )
 	{
-	$dirAlbum = $dirDisc -replace ' CD\d+$',''
+	$dirAlbum = $dirDisc -replace ' CD[ \d]+$',''
 	$szAlbum = $dirAlbum -replace '.*\\',''
 
 	if ($dirAlbum -ne $prevAlbum)
@@ -89,10 +101,10 @@ foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*CD?' | Whe
 		}
 
 	# Move the files from $dirDisc (Foo CD1) to $dirAlbum (Foo).
-	$maxTrack = MergeAlbum $dirDisc $dirAlbum $szAlbum $cTrackDelta $fReadonly
+	$maxTrack = MergeAlbum $dirDisc $dirAlbum $szAlbum $cTrackDelta $cTrackTotal $fReadonly
 
 	# Update the delta, for the next album.
-	$cTrackDelta = $cTrackDelta + $maxTrack
+	$cTrackDelta = $maxTrack
 	}
 
 # ---------------------------------------------------------------------------
