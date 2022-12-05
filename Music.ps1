@@ -296,7 +296,7 @@ function GetMetadata {
 			if ($iDx -ne $i) { throw "iDx out of sequence: " + $line} 
 
 			$metadata[$szName] = @{"iDx"=$iDx; "type"=$szType; "value"=$szValue}
-			if ($fVerbose) { Write-Host $metadata[$szName].iDx $szName $metadata[$szName].type $metadata[$szName].value }
+			#if ($fVerbose) { Write-Host $metadata[$szName].iDx $szName $metadata[$szName].type $metadata[$szName].value }
 
 			$i++
 		}
