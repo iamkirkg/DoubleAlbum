@@ -7,12 +7,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		DoubleAlbum.ps1 = DoubleAlbum.ps1
 		DoubleAlbum_CDn.ps1 = DoubleAlbum_CDn.ps1
-		TestMetadata.ps1 = TestMetadata.ps1
+		MetaUpdate.bat = MetaUpdate.bat
 		Music.ps1 = Music.ps1
 		MusicFix.ps1 = MusicFix.ps1
 		MusicFixed.ps1 = MusicFixed.ps1
 		RegexTitle.ps1 = RegexTitle.ps1
 		RenameAlbum.ps1 = RenameAlbum.ps1
+		TestMetadata.ps1 = TestMetadata.ps1
 	EndProjectSection
 EndProject
 Global
