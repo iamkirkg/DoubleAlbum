@@ -198,8 +198,10 @@ function MergeAlbum {
 	$maxTrack = 0
 	foreach ($fileMusic in Get-ChildItem -LiteralPath $dirSrc) {
 		# Get-ChildItem: -Include doesn't work with -LiteralPath, so do it manually.
-		# Music files are '04 blah blah.wma'
-		if ($fileMusic -match '^\d\d .*\.(mp3|wma)$') {
+		# Music files are
+		#   '04 blah blah.wma'
+		#   '01. foo bar.mp3' // \.? means to mach on zero or one dot.
+		if ($fileMusic -match '^\d\d\.? .*\.(mp3|wma)$') {
 			$iTrack = UpdateMusicFile $fileMusic.Fullname $szAlbum $cTrackDelta $cTrackTotal $fReadonly
 			if ($iTrack -eq -1)
 				{
@@ -214,7 +216,7 @@ function MergeAlbum {
 				$maxTrack = $iTrack
 			}
 		} else {
-			if ($fVerbose) { Write-Host "WARNING: skip $fileMusic because it's not a properly named WMA/MP3 file" }
+			if ($fVerbose) { Write-Host "WARNING: skip $fileMusic because it's not a properly number-named WMA/MP3 file" }
 		}
 	}
 
@@ -241,6 +243,10 @@ function MergeAlbum {
 #
 # Metadata output. No tabs, all spaces. 
 # We will presume that we never go over 100 Idx values, and have no VeryVeryLong Names.
+#
+# Note that we have files, such as 
+#    Deep Purple\Days May Come And Days May Go\CD1 (2008 Edition Compilation)\01. Owed to 'g' (instrumental).mp3)
+# where the Idx values do not consistently increase.  This one jumps from 23 to 25.
 #
 # Possible flavors:
 # -----------------------------------------------------------------------------------
@@ -272,8 +278,6 @@ function GetMetadata {
 
 	$metadata = @{}
 
-	[int]$i = 0
-
 	foreach ($line in & MetadataEdit.exe $fileMusic show 0)	{
 		if ($line -match '^\*$') {
 			#if ($fVerbose) { Write-Host "Header1" }
@@ -293,12 +297,8 @@ function GetMetadata {
 			$szType = $matches[3]
 			$szValue = $matches[4]
 
-			if ($iDx -ne $i) { throw "iDx out of sequence: " + $line} 
-
 			$metadata[$szName] = @{"iDx"=$iDx; "type"=$szType; "value"=$szValue}
 			#if ($fVerbose) { Write-Host $metadata[$szName].iDx $szName $metadata[$szName].type $metadata[$szName].value }
-
-			$i++
 		}
 		else {
 			throw "Bad metadata: " + $line
@@ -590,8 +590,11 @@ function UpdateMusicFile
 	
 	# REVIEW: regexp fails in this case; we match on \200 instead of \01.
 	#  01 \\kona\glerum\musicatos\Frank Zappa\200 Motels Disc 1\01 Semi-Fraudulent-Direct-From-Hollywood Overture.wma
-	# backslash, digits, then a space
-	if ($fileMusic -match ".*\\(\d+) ") {
+
+	# wildcard, backslash, digits, an optional period, then a space
+	#     Blondie\No Exit\11 Happy Dog.wma
+	#     Deep Purple\Fireball\01. Fireball.mp3
+	if ($fileMusic -match ".*\\(\d+)\.? ") {
 		[int]$iTrackPrefix = $matches[1]
 		$szTrackPrefix = $matches[1]
 		if ($fVerbose) { Write-Host "iTrackPrefix = $iTrackPrefix, szTrackPrefix = $szTrackPrefix, szTrackPrefixNew = $szTrackPrefixNew" }

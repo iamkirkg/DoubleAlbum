@@ -1,6 +1,14 @@
 <#
 
-We want to glue multiple "Disc n" music directories into one.
+To get the darned thing to run, in an admin shell
+	powershell.exe Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
+
+We want to glue multiple "Disc n" or "CDn" music directories into one.
+	The Beatles\Anthology 2 [Disc 1]
+	The Beatles\Anthology 2 [Disc 2]
+	Led Zeppelin\Blasphemy (1975 Earls Court, London) CD1
+	Led Zeppelin\Blasphemy (1975 Earls Court, London) CD2
+	Led Zeppelin\Blasphemy (1975 Earls Court, London) CD3
 
 Is it single- or double-quotes?  I can never remember.
 Remarkably, this works, with the ampersand:
@@ -20,13 +28,14 @@ TODO:
 	   g3\G3 Live (Rockin' In The Free World) [UK] Disc 2
        Pete Townshend Live- A Benefit for Maryville Academy
        Pete Townshend Live- A Benefit for Maryville Acadamy Disc 2
+
 ---------------------
 
-1) Create the new directory, without the ' Disc 1'
+1) Create the new directory, without the ' Disc 1' or ' CD1'
 2) For each file in the directory, update WM/AlbumTitle
 	b) Update WM/AlbumTitle
 	c) Move the file to its new name in the new directory
-4) Delete the empty Disc1 directory
+4) Delete the empty Disc1 or CDn directory
 
 #>
 
@@ -78,7 +87,8 @@ foreach ($arg in $args)
 
 # How many (properly numbered) music files are there in all these directories?
 $cTrackTotal = 0
-foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*Disc ?*' | Where-Object { $_.Attributes -match ".*Directory.*" } | Sort-Object $_.Fullname ) {
+foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*Disc ?*','*CD*' | Where-Object { $_.Attributes -match ".*Directory.*" } | Sort-Object $_.Fullname ) {
+	if ($fVerbose) { Write-Host "Search dir = $dirDisc" }
 	foreach ($fileMusic in Get-ChildItem -LiteralPath $dirDisc) {
 		if ($fileMusic -match '^\d\d .*\.(mp3|wma)$') {
 			$cTrackTotal++
@@ -88,13 +98,15 @@ foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*Disc ?*' |
 if ($fVerbose) { Write-Host "Count of files = $cTrackTotal" }
 
 # Process all the directories named 
-#    'Whatever Disc n'
-#    'Whatever [Disc n]'
-foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*Disc ?*' | Where-Object { $_.Attributes -match ".*Directory.*" } | Sort-Object $_.Fullname )
+#	'Whatever CDn'
+#	'Whatever Disc n'
+#	'Whatever [Disc n]'
+foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*Disc ?*','*CD*' | Where-Object { $_.Attributes -match ".*Directory.*" } | Sort-Object $_.Fullname )
 	{
 	Write-Host "Found: $dirDisc"
 	$dirAlbum = $dirDisc -replace ' Disc \d+$',''
 	$dirAlbum = $dirAlbum -replace ' \[Disc \d+\]',''
+	$dirAlbum = $dirAlbum -replace ' CD[ \d]+$',''
 	$szAlbum = $dirAlbum -replace '.*\\',''
 
 	if ($dirAlbum -ne $prevAlbum)
@@ -105,7 +117,8 @@ foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*Disc ?*' |
 		$prevAlbum = $dirAlbum
 		}
 
-	# Move the files from $dirDisc (Foo Disc 1) to $dirAlbum (Foo).
+	# Move the files from $dirDisc (Foo Disc 1 or Foo CD1) to $dirAlbum (Foo).
+	if ($fVerbose) { Write-Host "MergeAlbum $dirDisc $dirAlbum $szAlbum $cTrackDelta $cTrackTotal $fReadonly" }
 	$maxTrack = MergeAlbum $dirDisc $dirAlbum $szAlbum $cTrackDelta $cTrackTotal $fReadonly
 
 	# Update the delta, for the next album.
