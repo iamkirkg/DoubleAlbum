@@ -74,7 +74,7 @@ function RenameAlbum
 
 	$cTrackTotal = 0
 	foreach ($fileMusic in Get-ChildItem -LiteralPath $dirSrc) {
-		if ($fileMusic -match '^\d\d .*\.(mp3|wma)$') {
+		if ($fileMusic -match '^\d\d\.? .*\.(mp3|wma)$') {
 			$cTrackTotal++
 		}
 	}
@@ -110,12 +110,12 @@ function MergeAlbum_2ndInto1st
 
 	$cTrackTotal = 0
 	foreach ($fileMusic in Get-ChildItem -LiteralPath $dir1) {
-		if ($fileMusic -match '^\d\d .*\.(mp3|wma)$') {
+		if ($fileMusic -match '^\d\d\.? .*\.(mp3|wma)$') {
 			$cTrackTotal++
 		}
 	}
 	foreach ($fileMusic in Get-ChildItem -LiteralPath $dir2) {
-		if ($fileMusic -match '^\d\d .*\.(mp3|wma)$') {
+		if ($fileMusic -match '^\d\d\.? .*\.(mp3|wma)$') {
 			$cTrackTotal++
 		}
 	}
@@ -600,16 +600,16 @@ function UpdateMusicFile
 		if ($fVerbose) { Write-Host "iTrackPrefix = $iTrackPrefix, szTrackPrefix = $szTrackPrefix, szTrackPrefixNew = $szTrackPrefixNew" }
 
 		# Confirm the filename matches what we found in the metadata
-		if ($iTrackPrefix -eq $iTrackExpected) {
+		#if ($iTrackPrefix -eq $iTrackExpected) {
 			if ($myDelta -gt 0) {
-				$fullNew = "$fileMusic" -replace "\\$szTrackPrefix ", "\$szTrackPrefixNew "
+				$fullNew = "$fileMusic" -replace "\\$szTrackPrefix\.? ", "\$szTrackPrefixNew "
 				if ($fVerbose) { Write-Host "Move-Item -LiteralPath $fileMusic -Destination $fullNew" }
 				if (!$fReadonly) { Move-Item -LiteralPath $fileMusic -Destination $fullNew }
 			}
-		} else {
-			Write-Host "ERROR file prefix [$iTrackPrefix] doesn't match metadata [$iTrack] in $fileMusic"
-			return -1
-		}
+		#} else {
+		#	Write-Host "ERROR file prefix [$iTrackPrefix] doesn't match metadata [$iTrack] in $fileMusic"
+		#	return -1
+		#}
 	}
 	else {
 		Write-Host "ERROR doesn't start with two digits: $fileMusic"

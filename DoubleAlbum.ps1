@@ -90,7 +90,7 @@ $cTrackTotal = 0
 foreach ($dirDisc in Get-ChildItem -Path $dirRoot -Recurse -Include '*Disc ?*','*CD*' | Where-Object { $_.Attributes -match ".*Directory.*" } | Sort-Object $_.Fullname ) {
 	if ($fVerbose) { Write-Host "Search dir = $dirDisc" }
 	foreach ($fileMusic in Get-ChildItem -LiteralPath $dirDisc) {
-		if ($fileMusic -match '^\d\d .*\.(mp3|wma)$') {
+		if ($fileMusic -match '^\d\d\.? .*\.(mp3|wma)$') {
 			$cTrackTotal++
 		}
 	}
