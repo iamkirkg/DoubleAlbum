@@ -279,8 +279,14 @@ function GetMetadata {
 	$metadata = @{}
 
 	foreach ($line in & MetadataEdit.exe $fileMusic show 0)	{
-		if ($line -match '^\*$') {
-			#if ($fVerbose) { Write-Host "Header1" }
+		# John Entwistle 'Left For Live' has metadata where 'Name' has a trailing null!
+		#   Bitrate0x00                0    0    DWORD  320000
+		$chNull = [String](0x00 -as [char])
+		$line = $line -replace $chNull,''
+		if ($fVerbose) { Write-Host "line = [$line]" }
+
+		if ($line -match '^\*+$') {
+			if ($fVerbose) { Write-Host "Header1" }
 		}
 		elseif ($line -match '\* Idx  Name\s+Stream Language Type  Value') {
 			#if ($fVerbose) { Write-Host "Header2" }
