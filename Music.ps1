@@ -439,7 +439,10 @@ function UpdateMusicFile
 		if (!$fReadonly) {          &MetadataEdit.exe $fileMusic modify 0 $iDx $WMT_TYPE_STRING $szAlbum 0 | Out-Null }
 	}
 	else {
-		throw "UpdateMusicFile: can't find WM/AlbumTitle in " + $fileMusic
+		# MetaDataEdit <filename> set <stream number> <attrib name> <attrib type> <attrib value>
+		Write-Host "UpdateMusicFile: can't find WM/AlbumTitle in $fileMusic, so we're creating it."
+		if ($fVerbose) { Write-Host "MetadataEdit.exe $fileMusic set 0 WM/AlbumTitle $WMT_TYPE_STRING $szAlbum" }
+		if (!$fReadonly) {          &MetadataEdit.exe $fileMusic set 0 WM/AlbumTitle $WMT_TYPE_STRING $szAlbum | Out-Null }
 	}
 
 	# --------------------------------------------
