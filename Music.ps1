@@ -307,7 +307,8 @@ function GetMetadata {
 			#if ($fVerbose) { Write-Host $metadata[$szName].iDx $szName $metadata[$szName].type $metadata[$szName].value }
 		}
 		else {
-			throw "Bad metadata: " + $line
+			# throw "Bad metadata: " + $line
+			if ($fVerbose) { Write-Host "Bad metadata = [$line]" }
 		}
 	}
 	return $metadata
